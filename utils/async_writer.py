@@ -20,7 +20,8 @@ class AsyncWrite(threading.Thread):
         os.makedirs(os.path.join(saving_directory, f"traj{traj_index}", "images"), exist_ok=True)
 
     def run(self):
-        cv2.imwrite(os.path.join(self.saving_directory, f"traj{self.traj_index}", "images", f"hand_img_{self.i}.png"), self.hand_image)
+        if self.hand_image is not None:
+            cv2.imwrite(os.path.join(self.saving_directory, f"traj{self.traj_index}", "images", f"hand_img_{self.i}.png"), self.hand_image)
         Image.fromarray(self.third_person_image_color).save(os.path.join(self.saving_directory, f"traj{self.traj_index}", "images", f"third_person_img_color_{self.i}.png"))
 
         with open(os.path.join(self.saving_directory, f"traj{self.traj_index}", "images", "third_person_img_depth_%d.npy" % self.i), 'wb') as f:

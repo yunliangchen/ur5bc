@@ -169,8 +169,12 @@ renders/
 events.out.*
 
 # Data
+berkeley_ur5/
+RT-1 on Bridge/
 data
 !*/data
+cup.pkl
+tiger.npy
 
 # Misc
 old/
