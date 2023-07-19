@@ -98,7 +98,7 @@ class RT1Model:
 
 
 
-    def predict_action(self, image, natural_language_embedding):
+    def predict_action(self, image, natural_language_embedding, scale_model_output=False):
         # images: (480, 640, 3) with values in [0, 255]
 
         # Run inference to obtain predicted actions for each image in the episode
@@ -115,5 +115,7 @@ class RT1Model:
         policy_step = self.tfa_policy.action(tfa_time_step, self.policy_state)
         action = policy_step.action
         self.policy_state = policy_step.state
-        return np.concatenate((action['world_vector'], action['rotation_delta'], action['gripper_closedness_action'], action['terminate_episode'][:1]))
-
+        if not scale_model_output:
+            return np.concatenate((action['world_vector'], action['rotation_delta'], action['gripper_closedness_action'], action['terminate_episode'][:1]))
+        else:
+            return np.concatenate((action['world_vector']/100, action['rotation_delta']/15, action['gripper_closedness_action'], action['terminate_episode'][:1]))

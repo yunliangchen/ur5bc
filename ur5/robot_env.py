@@ -527,7 +527,7 @@ class RobotEnv(gym.Env):
                 t.daemon = True
                 t.start()
 
-    def evaluate_model_trajectory(self, model, task_embedding, traj_index=0, saving_directory="/home/lawrence/robotlerf/ur5bc/data/raw/teleop/"):
+    def evaluate_model_trajectory(self, model, task_embedding, traj_index=0, saving_directory="/home/lawrence/robotlerf/ur5bc/data/raw/teleop/", scale_model_output=False):
         gripper_is_being_blocked = False
 
         def trigger_gripper():
@@ -575,7 +575,7 @@ class RobotEnv(gym.Env):
                 writer = AsyncWrite(None, obs_dict["third_person_image"][0], obs_dict["third_person_image"][1], traj_index, saving_directory, i)
                 writer.start()
 
-                action = model.predict_action(obs_dict["third_person_image"][0], task_embedding)
+                action = model.predict_action(obs_dict["third_person_image"][0], task_embedding, scale_model_output)
                 print(action, "Do nothing because the gripper is being blocked")
                 action_traj.append(action)
                 
@@ -637,7 +637,7 @@ class RobotEnv(gym.Env):
             standard_output["other"]["hand_image"].append(obs_dict["hand_image"])
             standard_output["other"]["third_person_image"].append(np.dstack((obs_dict["third_person_image"][0], obs_dict["third_person_image"][1])))
             
-            action = model.predict_action(obs_dict["third_person_image"][0], task_embedding)
+            action = model.predict_action(obs_dict["third_person_image"][0], task_embedding, scale_model_output)
             action_traj.append(action)
             action = np.clip(action, [-0.02, -0.02, -0.02, -1/15, -1/15, -1/15, -1, -1], [0.02, 0.02, 0.02, 1/15, 1/15, 1/15, 1, 1])
             print(action)
