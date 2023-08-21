@@ -1,0 +1,16 @@
+wandb offline; python -m pdb -c continue experiments/patrick/roboverse_offline_gc_multienv.py \
+    --config experiments/patrick/configs/offline_pixels_config_3b.py:roboverse_gc_iql \
+    --env_name Widow250TableArrangement-v0 \
+    --data_path /media/ashvin/data1/patrickhaoy/data/test/Widow250DiverseTableArrangement-v0_4_save_all_noise_0.1_2023-01-20T20-18-20 \
+    --seed 1 \
+    --eval_episodes 1 \
+    --log_interval 1 \
+    --eval_interval 10000 \
+    --save_interval 100000 \
+    --batch_size 256 \
+    --num_devices 1 \
+    --save_video True \
+    --deterministic_eval \
+    --save_dir /media/ashvin/data1/patrickhaoy/log \
+    --name 'rl_128_diverse_widowx' \
+    --config.model_config.dataset_kwargs.use_proportion=1

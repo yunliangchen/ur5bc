@@ -1,0 +1,34 @@
+Bootstrap:library
+From: young-geng/ml/ubuntu_18.04_cuda11.5:latest
+
+%files
+    ./requirements.txt /contained/setup/requirements.txt
+
+%post -c /bin/bash
+    source /contained/anaconda3/etc/profile.d/conda.sh
+    apt-get install -y libgl1 freeglut3 freeglut3-dev cmake qt5-default
+    
+    export WANDB_API_KEY='9cc9483d02281894460d3025359a030d7734ad2c'
+    conda create -n jaxrl python=3.10
+    conda activate jaxrl
+    pip install -r /contained/setup/requirements.txt
+    pip install --upgrade "jax[cuda]" -f https://storage.googleapis.com/jax-releases/jax_cuda_releases.html
+    pip install tensorboardX tensorflow-probability imageio imageio-ffmpeg
+    conda clean --all
+    
+    chmod -R 777 /contained
+
+%environment
+    source /contained/anaconda3/etc/profile.d/conda.sh
+    conda activate jaxrl
+    export WANDB_API_KEY='9cc9483d02281894460d3025359a030d7734ad2c'
+    export XLA_FLAGS=--xla_gpu_force_compilation_parallelism=1
+    export XLA_PYTHON_CLIENT_PREALLOCATE=false
+    export TF_FORCE_GPU_ALLOW_GROWTH=true
+    
+%runscript
+    #! /bin/bash
+    export PYTHONPATH="$PYTHONPATH:$CODEPATH"
+    echo $PYTHONPATH
+    echo XLA_PYTHON_CLIENT_PREALLOCATE=false "$@"
+    XLA_PYTHON_CLIENT_PREALLOCATE=false "$@"

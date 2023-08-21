@@ -1,0 +1,79 @@
+TPU0 python experiments/patrick/roboverse_offline_gc.py \
+    --config experiments/patrick/configs/offline_pixels_config.py:roboverse_gc_iql \
+    --env_name Widow250DiversePickPlacePositionMultiObjectFixGripperFixObjQuat-v0 \
+    --data_path gcs://rail-tpus-patrick/data/roboverse_Widow250DiversePickPlacePositionMultiObjectFixGripperFixObjQuat-v0_10K_save_all_noise_0.1_2022-12-21T05-40-53 \
+    --seed 1 \
+    --eval_episodes 20 \
+    --log_interval 5000 \
+    --eval_interval 5000 \
+    --save_interval 25000 \
+    --batch_size 256 \
+    --num_devices 2 \
+    --save_video=True \
+    --deterministic_eval=True \
+    --save_dir gcs://rail-tpus-patrick/logs/ \
+    --gcloud_project rail-tpus \
+    --gcloud_token_path /nfs/nfs1/users/patrick/tokens/rail-tpus-896b5724c93d.json \
+    --name 'rl_128_diverse_v2_fix_gripper_fix_obj_quat_widowx' \
+    --config.model_config.dataset_kwargs.use_proportion=1.0 \
+    --config.model_config.agent_kwargs.early_goal_concat=False
+
+TPU1 python experiments/patrick/roboverse_offline_gc.py \
+    --config experiments/patrick/configs/offline_pixels_config.py:roboverse_gc_iql \
+    --env_name Widow250DiversePickPlacePositionMultiObjectFixGripperFixObjQuat-v0 \
+    --data_path gcs://rail-tpus-patrick/data/roboverse_Widow250DiversePickPlacePositionMultiObjectFixGripperFixObjQuat-v0_10K_save_all_noise_0.1_2022-12-21T05-40-53 \
+    --seed 1 \
+    --eval_episodes 20 \
+    --log_interval 5000 \
+    --eval_interval 5000 \
+    --save_interval 25000 \
+    --batch_size 256 \
+    --num_devices 2 \
+    --save_video=True \
+    --deterministic_eval=True \
+    --save_dir gcs://rail-tpus-patrick/logs/ \
+    --gcloud_project rail-tpus \
+    --gcloud_token_path /nfs/nfs1/users/patrick/tokens/rail-tpus-896b5724c93d.json \
+    --name 'rl_128_diverse_v2_fix_gripper_fix_obj_quat_widowx' \
+    --config.model_config.dataset_kwargs.use_proportion=0.1 \
+    --config.model_config.agent_kwargs.early_goal_concat=False
+
+TPU2 python experiments/patrick/roboverse_offline_gc.py \
+    --config experiments/patrick/configs/offline_pixels_config.py:roboverse_gc_iql \
+    --env_name Widow250DiversePickPlacePositionMultiObjectFixGripperFixObjQuat-v0 \
+    --data_path gcs://rail-tpus-patrick/data/roboverse_Widow250DiversePickPlacePositionMultiObjectFixGripperFixObjQuat-v0_10K_save_all_noise_0.1_2022-12-21T05-40-53 \
+    --seed 1 \
+    --eval_episodes 20 \
+    --log_interval 5000 \
+    --eval_interval 5000 \
+    --save_interval 25000 \
+    --batch_size 256 \
+    --num_devices 2 \
+    --save_video=True \
+    --deterministic_eval=True \
+    --save_dir gcs://rail-tpus-patrick/logs/ \
+    --gcloud_project rail-tpus \
+    --gcloud_token_path /nfs/nfs1/users/patrick/tokens/rail-tpus-896b5724c93d.json \
+    --name 'rl_128_diverse_v2_fix_gripper_fix_obj_quat_widowx' \
+    --config.model_config.dataset_kwargs.use_proportion=1.0 \
+    --config.model_config.agent_kwargs.early_goal_concat=True
+
+TPU3 python experiments/patrick/roboverse_offline_gc.py \
+    --config experiments/patrick/configs/offline_pixels_config.py:roboverse_gc_iql \
+    --env_name Widow250DiversePickPlacePositionMultiObjectFixGripperFixObjQuat-v0 \
+    --data_path gcs://rail-tpus-patrick/data/roboverse_Widow250DiversePickPlacePositionMultiObjectFixGripperFixObjQuat-v0_10K_save_all_noise_0.1_2022-12-21T05-40-53 \
+    --seed 1 \
+    --eval_episodes 20 \
+    --log_interval 5000 \
+    --eval_interval 5000 \
+    --save_interval 25000 \
+    --batch_size 256 \
+    --num_devices 2 \
+    --save_video=True \
+    --deterministic_eval=True \
+    --save_dir gcs://rail-tpus-patrick/logs/ \
+    --gcloud_project rail-tpus \
+    --gcloud_token_path /nfs/nfs1/users/patrick/tokens/rail-tpus-896b5724c93d.json \
+    --name 'rl_128_diverse_v2_fix_gripper_fix_obj_quat_widowx' \
+    --config.model_config.dataset_kwargs.use_proportion=0.1 \
+    --config.model_config.agent_kwargs.early_goal_concat=True
