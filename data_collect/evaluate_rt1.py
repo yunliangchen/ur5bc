@@ -20,8 +20,7 @@ os.environ['TF_FORCE_GPU_ALLOW_GROWTH'] = 'true'
 def main():
     env = RobotEnv()
     index = 0
-    # task_string = "Take the tiger out of the red bowl and put it in the grey bowl." # tiger pick and place (gripper initial position fixed)
-    task_string = "Take the tiger out of the grey bowl and put it in the red bowl." # tiger pick and place (gripper initial position fixed)
+    task_string = "Take the tiger out of the red bowl and put it in the grey bowl." # tiger pick and place (gripper initial position fixed)
     # task_string = "Sweep the green cloth to the left side of the table." # cloth sweeping (gripper initial position random)
     # task_string = "Put the ranch bottle into the pot." # bottle pick and place (gripper initial position fixed)
     # task_string = "Pick up the blue cup and put it into the brown cup. " # cup stacking (gripper initial position random)
