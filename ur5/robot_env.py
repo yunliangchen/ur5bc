@@ -21,7 +21,7 @@ from ur5.spacemouse import SpaceMouseRobotController
 from misc.policy_wrapper import FrameStackWrapper
 
 class WebCam:
-    def __init__(self, port_num = 7, resolution = "480p"):
+    def __init__(self, port_num = 0, resolution = "480p"):
 
         # v4l2-ctl -d /dev/video0 --set-ctrl=focus_auto=0 --set-ctrl=focus_absolute=10 --set-ctrl=white_balance_temperature_auto=0 -c exposure_auto_priority=0 --set-ctrl=saturation=60 --set-ctrl=gain=140
         # command = [
@@ -55,6 +55,7 @@ class WebCam:
         t = threading.Thread(target=self._reader)
         t.daemon = True
         t.start()
+        print("here")
 
     # read frames as soon as they are available, keeping only most recent one
     def _reader(self):
@@ -184,7 +185,7 @@ class RobotEnv(gym.Env):
 
         # Create Cameras
         # import pdb; pdb.set_trace()
-        # self.webcam = WebCam(**camera_kwargs)
+        self.webcam = WebCam(**camera_kwargs)
         self.depthcam = DepthCam(**camera_kwargs)
 
         # Initialize the space mouse
@@ -233,8 +234,8 @@ class RobotEnv(gym.Env):
         timestamp_dict["read_start"] = time_ms() - self.trajectory_start_time
         third_person_img = self.depthcam.read()
         ############### Temporary ###############
-        # hand_img = self.webcam.read()
-        hand_img = third_person_img[0].copy()
+        hand_img = self.webcam.read()
+        # hand_img = third_person_img[0].copy()
         #########################################
         timestamp_dict["read_end"] = time_ms() - self.trajectory_start_time
         return hand_img, third_person_img, timestamp_dict
@@ -1099,6 +1100,209 @@ class RobotEnv(gym.Env):
             print(action)
 
             
+
+            if action[-1] == 1:
+                stop = True
+                # action_traj.append([0,0,0,0,0,0,0,1]) # termination action
+                break
+            elif (self._gripper_is_closed and action[-2] < -0.5) or (not self._gripper_is_closed and action[-2] > 0.5):
+                last_timestep = time.time()
+                # if self._gripper_is_closed and action[-2] < 0:
+                    # action_traj.append([0,0,0,0,0,0,-1,0]) # open gripper
+                # elif not self._gripper_is_closed and action[-2] > 0:
+                    # action_traj.append([0,0,0,0,0,0,1,0]) # close gripper
+                
+                if time.time() - last_timestep < 1 / self.control_hz:
+                    time.sleep(last_timestep + 1 / self.control_hz - time.time())
+                else:
+                    print("Warning: Control Loop is running slower than desired frequency")
+                    print(time.time() - last_timestep, " seconds has passed")
+                last_timestep = time.time()
+                i += 1
+
+                threadList = [threading.Thread(target=trigger_gripper), threading.Thread(target=keep_recording)]
+                for threads in threadList:
+                    threads.start()
+                for threads in threadList:
+                    threads.join()
+                
+            else:
+                
+                
+                delta_pose = RigidTransform(translation=action[:3], rotation=euler_matrix(action[3], action[4], action[5], axes="ryxz")[:3, :3], from_frame="tcp", to_frame="tcp")
+
+                # Update Robot
+                current_pose = self._robot.get_pose()
+                current_pose.from_frame = "tcp"
+                new_pose = current_pose * delta_pose
+                # self._robot.move_pose(new_pose, vel=1, acc=10)
+                self._robot.servo_pose(new_pose, 0.01, 0.2, 100)
+            
+                if time.time() - last_timestep < 1 / self.control_hz:
+                    time.sleep(last_timestep + 1 / self.control_hz - time.time())
+                else:
+                    print("Warning: Control Loop is running slower than desired frequency")
+                    print(time.time() - last_timestep, " seconds has passed")
+                last_timestep = time.time()
+                i += 1
+
+        # Turn everything into numpy arrays
+        # standard_output["robot_state"] = np.array(standard_output["robot_state"]) # (T, 15)
+        # standard_output["image"] = np.stack(standard_output["image"], axis=0) # (T, 480, 640, 3)
+        # standard_output["action"] = np.array(action_traj) # (T, 8)
+        # standard_output["task"] = np.array(standard_output["task"]) # (T, 1)
+        # standard_output["other"]["hand_image"] = np.stack(standard_output["other"]["hand_image"], axis=0) # (T, 480, 640, 3)
+        # standard_output["other"]["third_person_image"] = np.stack(standard_output["other"]["third_person_image"], axis=0) # (T, 480, 640, 4)
+        
+        return standard_output, action_traj, state_traj, obs_traj
+
+    def evaluate_orca_model_trajectory(self, task_string, traj_index=0, saving_directory="/home/lawrence/robotlerf/ur5bc/data/raw/teleop/"):
+        gripper_is_being_blocked = False
+
+        import tensorflow as tf
+        import urllib
+        import requests
+        import json_numpy
+        json_numpy.patch()
+        from json import loads
+        def resize_image(image, size=128):
+            image = tf.image.resize(image, size=[size, size], method="lanczos3", antialias=True)
+            image = tf.cast(tf.clip_by_value(tf.round(image), 0, 255), tf.uint8).numpy()
+            return image
+
+        num_obs = 0
+        goal_image = None
+        use_goal_image = input("Use goal image? ") == "y"
+
+        def trigger_gripper():
+            print("Enter into trigger gripper at time {}".format(time_ms() - self.trajectory_start_time))
+            nonlocal gripper_is_being_blocked, num_obs
+            def update_gripper_status():
+                time.sleep(1.3)
+                print("Start")
+                self._gripper_is_closed = not self._gripper_is_closed
+                print("End")
+                    
+            gripper_is_closed = self._gripper_is_closed
+            t = threading.Thread(target=update_gripper_status) # start a child thread
+            t.daemon = True
+            t.start()
+            gripper_is_being_blocked = True
+            print("Start blocking gripper at time {}".format(time_ms() - self.trajectory_start_time))
+            if gripper_is_closed:
+                self._robot.gripper.open()
+            else:
+                self._robot.gripper.close()
+            gripper_is_being_blocked = False
+            print("End blocking gripper at time {}".format(time_ms() - self.trajectory_start_time))
+
+
+        def keep_recording():
+            nonlocal state_traj, obs_traj, action_traj, standard_output, gripper_is_being_blocked, last_timestep, i, num_obs, goal_image, task
+            gripper_is_being_blocked = True # otherwise it will not enter the loop before trigger_gripper set gripper_is_being_blocked to True
+            
+            while gripper_is_being_blocked:
+                # print("Doing things at time {} ".format(time_ms() - self.trajectory_start_time), "for iteration ", i)
+
+                # continue recording the state and observation at the same frequency
+                state_dict, obs_dict = self.get_observation()
+                state_traj["poses"].append(state_dict["robot_pose"].matrix)
+                state_traj["joints"].append(state_dict["robot_joints"])
+                state_traj["timestamp"]["read_start"].append(state_dict["timestamp"]["read_start"])
+                state_traj["timestamp"]["read_end"].append(state_dict["timestamp"]["read_end"])
+                state_traj["gripper_closed"].append(self._gripper_is_closed)
+                state_traj["action_blocked"].append(True)
+                obs_traj["hand_image"].append(obs_dict["hand_image"])
+                obs_traj["third_person_image"].append(obs_dict["third_person_image"]) 
+                obs_traj["timestamp"]["read_start"].append(obs_dict["timestamp"]["read_start"])
+                obs_traj["timestamp"]["read_end"].append(obs_dict["timestamp"]["read_end"])
+                writer = AsyncWrite(obs_dict["hand_image"], obs_dict["third_person_image"][0], obs_dict["third_person_image"][1], traj_index, saving_directory, i)
+                writer.start()
+                
+                # for the standardized format:
+                pose = list(translation_from_matrix(state_dict["robot_pose"].matrix)) + list(quaternion_from_matrix(state_dict["robot_pose"].matrix)) # [x,y,z, qx,qy,qz,qw]
+                robot_state = state_dict["robot_joints"] + pose + [self._gripper_is_closed] + [True] # [joint_angles, x,y,z, qx,qy,qz,qw, gripper_is_closed, action_blocked]
+                image = obs_dict["third_person_image"][0]
+                # task = task_string
+                standard_output["robot_state"].append(robot_state)
+                standard_output["image"].append(image)
+                # standard_output["task"].append([task])
+                standard_output["other"]["hand_image"].append(obs_dict["hand_image"])
+                standard_output["other"]["third_person_image"].append(np.dstack((obs_dict["third_person_image"][0], obs_dict["third_person_image"][1])))
+            
+                if time.time() - last_timestep < 1 / self.control_hz:
+                    time.sleep(last_timestep + 1 / self.control_hz - time.time())
+                else:
+                    print("Warning: Control Loop is running slower than desired frequency")
+                    print(time.time() - last_timestep, " seconds has passed")
+                last_timestep = time.time()
+                i += 1
+            print("Stop doing things at time {} ".format(time_ms() - self.trajectory_start_time), "for iteration ", i)
+            return
+
+        
+
+        state_traj = {"poses": [], "joints": [], "gripper_closed": [], "action_blocked": [], "timestamp":{"read_start": [], "read_end":[]}} # "poses": [RigidTransforms], "joints": Array(T, 6); "timestamp"/ "read_start": Array(T,), "read_end": Array(T,)
+        obs_traj = {"hand_image": [], "third_person_image": [], "timestamp":{"read_start": [], "read_end":[]}}
+        action_traj = []
+        standard_output = {"robot_state": [], "action": [], "image": [], "task": [], "other": {"hand_image": [], "third_person_image": []}}
+        last_timestep = time.time()
+        i = 0
+        self.trajectory_start_time = time_ms()
+
+        
+
+        while True:
+            state_dict, obs_dict = self.get_observation()
+            state_traj["poses"].append(state_dict["robot_pose"].matrix)
+            state_traj["joints"].append(state_dict["robot_joints"])
+            state_traj["timestamp"]["read_start"].append(state_dict["timestamp"]["read_start"])
+            state_traj["timestamp"]["read_end"].append(state_dict["timestamp"]["read_end"])
+            state_traj["gripper_closed"].append(self._gripper_is_closed)
+            state_traj["action_blocked"].append(False)
+            obs_traj["hand_image"].append(obs_dict["hand_image"])
+            obs_traj["third_person_image"].append(obs_dict["third_person_image"]) 
+            obs_traj["timestamp"]["read_start"].append(obs_dict["timestamp"]["read_start"])
+            obs_traj["timestamp"]["read_end"].append(obs_dict["timestamp"]["read_end"])
+
+            writer = AsyncWrite(obs_dict["hand_image"], obs_dict["third_person_image"][0], obs_dict["third_person_image"][1], traj_index, saving_directory, i)
+            writer.start()
+
+            # for the standardized format:
+            pose = list(translation_from_matrix(state_dict["robot_pose"].matrix)) + list(quaternion_from_matrix(state_dict["robot_pose"].matrix)) # [x,y,z, qx,qy,qz,qw]
+            robot_state = state_dict["robot_joints"] + pose + [self._gripper_is_closed] + [False] # [joint_angles, x,y,z, qx,qy,qz,qw, gripper_is_closed, action_blocked]
+            image = obs_dict["third_person_image"][0]
+            # task = task_string
+            standard_output["robot_state"].append(robot_state)
+            standard_output["image"].append(image)
+            # standard_output["task"].append([task])
+            standard_output["other"]["hand_image"].append(obs_dict["hand_image"])
+            standard_output["other"]["third_person_image"].append(np.dstack((obs_dict["third_person_image"][0], obs_dict["third_person_image"][1])))
+            
+            obs = {
+                "image_0": resize_image(obs_dict["third_person_image"][0], size=256),
+                # "image_1": resize_image(obs_dict["hand_image"], size=128)[:,:,::-1],
+            }
+            if goal_image is None and use_goal_image:
+                goal_image = obs
+                task = goal_image
+                input("Press [Enter] to continue")
+            else:
+                task = task_string
+
+            num_obs += 1
+
+            action = np.copy(np.array(loads(requests.post(
+                            urllib.parse.urljoin('http://128.32.175.252:8000', 'query'),
+                            json={"observation": obs, "task": task},
+                        ).json())))
+
+            print(action[-1])
+            action[-1] = 1 if (action[-1] < 0.25) else -1
+            action = np.append(action, 0)
+
+            action_traj.append(action)
+            action = np.clip(action, [-0.02, -0.02, -0.02, -1/15, -1/15, -1/15, -1, -1], [0.02, 0.02, 0.02, 1/15, 1/15, 1/15, 1, 1])
 
             if action[-1] == 1:
                 stop = True

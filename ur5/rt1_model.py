@@ -92,7 +92,8 @@ class RT1Model:
     def compute_embedding(self, task_name):
         print("Computing embedding ...")
         # Load language model and embed the task string
-        embed = hub.load('https://tfhub.dev/google/universal-sentence-encoder-large/5')
+        # embed = hub.load('https://tfhub.dev/google/universal-sentence-encoder-large/5')
+        embed = hub.load('.') # see the top answer: https://stackoverflow.com/questions/62674772/how-to-use-tf-hub-models-locally
         print("Finished loading language model.")
         return embed([self._normalize_task_name(task_name)])[0]
 

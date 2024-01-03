@@ -197,3 +197,6 @@ bc_baselines/lcbc_baseline/checkpoint_10000
 bc_baselines/lcbc_baseline/checkpoint_20000
 bc_baselines/lcbc_baseline/ur5_val
 bc_baselines/lcbc_baseline/ur5_inference.tar.gz
+*.pb
+*.tar.gz
+variables/
